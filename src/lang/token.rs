@@ -10,7 +10,9 @@ pub enum TokenKind {
     Pow,        // ^
     RealDiv,    // /
     IntDiv,     // //
+    Mod,        // %
     Concat,     // ..
+    Len,        // #
 
     Lpar,       // (
     Rpar,       // )

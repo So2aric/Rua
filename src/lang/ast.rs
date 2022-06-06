@@ -13,6 +13,7 @@ impl AST for ASTNode {}
 pub type ExprList = Vec<Expr>;
 impl AST for ExprList {}
 
+#[derive(Debug)]
 pub enum Expr {
     BinOp {
         op: TokenKind,
@@ -37,12 +38,14 @@ impl AST for Expr {}
 pub type IdentList = Vec<Ident>;
 impl AST for IdentList {}
 
+#[derive(Debug)]
 pub struct Ident {
     pub name: String
 }
 impl AST for Ident {}
 
 
+#[derive(Debug)]
 pub struct FuncDecl {
     pub ident: Ident,
     pub args: IdentList,
@@ -51,6 +54,7 @@ pub struct FuncDecl {
 impl AST for FuncDecl {}
 
 
+#[derive(Debug)]
 pub struct FuncCall {
     pub ident: Ident,
     pub args: ExprList
@@ -61,6 +65,7 @@ impl AST for FuncCall {}
 pub type StmtList = Vec<Stmt>;
 impl AST for StmtList {}
 
+#[derive(Debug)]
 pub enum Stmt {
     Assign {
         ident_list: IdentList,
