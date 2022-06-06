@@ -19,7 +19,7 @@ impl Parser {
         let res = self.stmt_list();
 
         if !self.matches(TokenKind::Eof) {
-            panic!("Unexpected ended.");
+            panic!("Unexpected ended. cur_tok: {:?}", self.tok);
         }
 
         res
@@ -42,20 +42,61 @@ impl Parser {
     fn stmt_list(&mut self) -> StmtList {
         let mut res = vec![];
 
-        while !self.matches(TokenKind::Eof) {
+        while ![TokenKind::Eof, TokenKind::Elseif,
+            TokenKind::Else, TokenKind::End]
+            .contains(&self.tok.kind)
+        {
             res.push(self.stmt());
         }
 
         res
     }
 
-    // stmt = ident_list '=' expr_list
+    // stmt = assign_stmt | if_stmt
     fn stmt(&mut self) -> Stmt {
+        match self.tok.kind {
+            TokenKind::If => self.if_stmt(),
+            TokenKind::Ident => self.assign_stmt(),
+
+            _ => panic!("Unknown statement. cur_tok: {:?}", self.tok.kind)
+        }
+    }
+
+    // assign_stmt = ident_list '=' expr_list
+    fn assign_stmt(&mut self) -> Stmt {
         let ident_list = self.ident_list();
         self.eat(TokenKind::Assign);
         let expr_list = self.expr_list();
 
         Stmt::Assign { ident_list, expr_list }
+    }
+
+    // if_stmt = 'if' expr 'then' stmt_list { 'elseif' expr 'then' stmt_list } [ 'else' stmt_list ] 'end'
+    fn if_stmt(&mut self) -> Stmt {
+        self.eat(TokenKind::If);
+        let cond = self.expr();
+        self.eat(TokenKind::Then);
+        let if_body = self.stmt_list();
+
+        let mut elseif_conds = vec![];
+        let mut elseif_bodies = vec![];
+
+        while self.matches(TokenKind::Elseif) {
+            self.eat(TokenKind::Elseif);
+            elseif_conds.push(self.expr());
+            self.eat(TokenKind::Then);
+            elseif_bodies.push(self.stmt_list());
+        }
+
+        let mut else_body = vec![];
+        if self.matches(TokenKind::Else) {
+            self.eat(TokenKind::Else);
+            else_body = self.stmt_list();
+        }
+
+        self.eat(TokenKind::End);
+
+        Stmt::If { cond, if_body, elseif_conds, elseif_bodies, else_body }
     }
 
     // ident_list = ident { , ident }
@@ -270,6 +311,17 @@ mod tests {
             a = 1 + 3 ^ 4 ^ 2
             b = 6 * (5 - 2)
             c, d = "wow" .. "yeah", 1
+
+            if a + b > 3 then
+                c = 5
+            elseif b < 5 then
+                b = 1
+            elseif a - 1 == 0 then
+                a = a + 1
+                b = b - 2
+            else
+                d = "Oh no"
+            end
         "#).analyze();
         let mut parser = Parser::new(toks);
 
