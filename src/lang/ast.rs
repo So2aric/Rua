@@ -17,6 +17,7 @@ pub enum Expr {
     Ident(Ident),
     Number(f64),
     String(String),
+    Boolean(bool),
 
     FuncDecl(FuncDecl),
     FuncCall(FuncCall)

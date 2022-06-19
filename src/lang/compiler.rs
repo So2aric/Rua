@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 
-use super::{ast::{IdentList, ExprList, Expr, StmtList, Ident, Stmt}, bytecode::{Bytecode, Instruction, Arg, Bytecodes}, token::TokenKind};
+use super::{ast::{IdentList, ExprList, Expr, StmtList, Ident, Stmt}, bytecode::{Bytecode, Instruction, Bytecodes}, token::TokenKind};
 
 pub struct Compiler {
     codes: Vec<Bytecode>,
-    num_map: HashMap<String, Arg>,
-    num_map_ptr: Arg,
-    str_map: HashMap<String, Arg>,
-    str_map_ptr: Arg,
+    num_map: HashMap<String, usize>,
+    num_map_ptr: usize,
+    str_map: HashMap<String, usize>,
+    str_map_ptr: usize,
 
-    ident_map: HashMap<String, Arg>,
-    ident_map_ptr: Arg
+    ident_map: HashMap<String, usize>,
+    ident_map_ptr: usize
 }
 
 impl Compiler {
@@ -18,19 +18,20 @@ impl Compiler {
         Compiler {
             codes: vec![],
             num_map: HashMap::new(),
-            num_map_ptr: Arg::new(0),
+            num_map_ptr: 0,
             str_map: HashMap::new(),
-            str_map_ptr: Arg::new(0),
+            str_map_ptr: 0,
 
             ident_map: HashMap::new(),
-            ident_map_ptr: Arg::new(0)
+            ident_map_ptr: 0
         }
     }
 
     pub fn compile(&mut self, node: &StmtList) -> Bytecodes {
         self.visit_stmt_list(node);
 
-        let bc = self.codes.clone();
+        let mut bc = self.codes.clone();
+        bc.push(Bytecode { inst: Instruction::End, arg: 0 });
 
         // to make the keys ordered
         // there should be a better method
@@ -94,46 +95,69 @@ impl Compiler {
         elseif_bodies: &Vec<StmtList>,
         else_body: &StmtList
     ) {
-        unimplemented!()
+        self.visit_expr(cond);
+        self.codes.push(Bytecode { inst: Instruction::JumpAbsoluteIfFalse, arg: 0 });
+        let if_pos = self.codes.len() - 1;
+        
+        self.visit_stmt_list(if_body);
+        self.codes.push(Bytecode { inst: Instruction::JumpAbsolute, arg: 0 });
+        self.codes[if_pos].arg = self.codes.len() - 1;
+
+        let mut s_pos = vec![self.codes.len() - 1];
+
+        elseif_conds.iter().zip(elseif_bodies.iter())
+            .for_each(|(cond, body)| {
+                self.visit_expr(cond);
+                self.codes.push(Bytecode { inst: Instruction::JumpAbsoluteIfFalse, arg: 0 });
+                let if_pos = self.codes.len() - 1;
+                
+                self.visit_stmt_list(body);
+                self.codes.push(Bytecode { inst: Instruction::JumpAbsolute, arg: 0 });
+                self.codes[if_pos].arg = self.codes.len() - 1;
+                s_pos.push(self.codes.len() - 1);
+            });
+        
+        for i in s_pos {
+            self.codes[i].arg = self.codes.len() - 1;
+        }
+
+
     }
 
     fn visit_assign(&mut self,
         ident_list: &IdentList,
         expr_list: &ExprList
     ) {
-        for ident in ident_list {
-            self.visit_ident(ident);
-        }
         for expr in expr_list {
             self.visit_expr(expr);
         }
-        
-        self.codes.push(Bytecode {
-            inst: Instruction::StoreGlob,
-            arg: Arg::new(0)
-        });
+        for ident in ident_list.iter().rev() {
+            self.visit_ident(ident, Instruction::StoreGlob);
+        }
+
+
     }
 
-    fn visit_ident(&mut self, ident: &Ident) {
-        let val = dbg!(ident).name.clone();
+    fn visit_ident(&mut self, ident: &Ident, inst: Instruction) {
+        let val = ident.name.clone();
 
-        let arg = if self.num_map.contains_key(&val) {
+        let arg = if self.ident_map.contains_key(&val) {
             *self.ident_map.get(&val).unwrap()
         } else {
             let arg = self.ident_map_ptr;
             self.ident_map.insert(val, arg);
-            self.ident_map_ptr.advance();
+            self.ident_map_ptr += 1;
             arg
         };
 
         self.codes.push(Bytecode {
-            inst: Instruction::LoadGlob,
+            inst: inst,
             arg
         });
     }
 
     fn visit_expr(&mut self, expr: &Expr) {
-        match dbg!(expr) {
+        match expr {
             Expr::BinOp { op, left, right } => {
                 self.visit_expr(left);
                 self.visit_expr(right);
@@ -141,35 +165,35 @@ impl Compiler {
                 match op {
                     TokenKind::Plus => self.codes.push(Bytecode {
                         inst: Instruction::BinAdd,
-                        arg: Arg::new(0)
+                        arg: 0
                     }),
                     TokenKind::Minus => self.codes.push(Bytecode {
                         inst: Instruction::BinMinus,
-                        arg: Arg::new(0)
+                        arg: 0
                     }),
                     TokenKind::Mul => self.codes.push(Bytecode {
                         inst: Instruction::BinMul,
-                        arg: Arg::new(0)
+                        arg: 0
                     }),
                     TokenKind::RealDiv => self.codes.push(Bytecode {
                         inst: Instruction::BinRealDiv,
-                        arg: Arg::new(0)
+                        arg: 0
                     }),
                     TokenKind::IntDiv => self.codes.push(Bytecode {
                         inst: Instruction::BinIntDiv,
-                        arg: Arg::new(0)
+                        arg: 0
                     }),
                     TokenKind::Mod => self.codes.push(Bytecode {
                         inst: Instruction::BinMod,
-                        arg: Arg::new(0)
+                        arg: 0
                     }),
                     TokenKind::Concat => self.codes.push(Bytecode {
                         inst: Instruction::BinConcat,
-                        arg: Arg::new(0)
+                        arg: 0
                     }),
                     TokenKind::Pow => self.codes.push(Bytecode {
                         inst: Instruction::BinPow,
-                        arg: Arg::new(0)
+                        arg: 0
                     }),
 
                     _ => panic!("BinOP???")
@@ -182,15 +206,15 @@ impl Compiler {
                 match op {
                     TokenKind::Not => self.codes.push(Bytecode {
                         inst: Instruction::UnaryNot,
-                        arg: Arg::new(0)
+                        arg: 0
                     }),
                     TokenKind::Minus => self.codes.push(Bytecode {
                         inst: Instruction::UnaryMinus,
-                        arg: Arg::new(0)
+                        arg: 0
                     }),
                     TokenKind::Len => self.codes.push(Bytecode {
                         inst: Instruction::UnaryLen,
-                        arg: Arg::new(0)
+                        arg: 0
                     }),
 
                     _ => panic!("UnaryOP???")
@@ -200,10 +224,27 @@ impl Compiler {
             Expr::Number(x) => {
                 let b = self.make_num_code(Instruction::LoadNumber, *x);
                 self.codes.push(b);
+            },
+
+            Expr::Ident(x) => {
+                self.visit_ident(x, Instruction::LoadGlob);
+            },
+
+            Expr::Boolean(x) => {
+                self.codes.push(Bytecode {
+                    inst: if *x {
+                        Instruction::LoadTrue
+                    } else {
+                        Instruction::LoadFalse
+                    },
+                    arg: 0
+                });
             }
 
             _ => unimplemented!()
         }
+
+
     }
 
     fn make_num_code(&mut self, inst: Instruction, val: f64) -> Bytecode {
@@ -216,7 +257,7 @@ impl Compiler {
         } else {
             let arg = self.num_map_ptr;
             self.num_map.insert(val, arg);
-            self.num_map_ptr.advance();
+            self.num_map_ptr += 1;
             
             Bytecode {
                 inst,

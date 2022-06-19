@@ -265,7 +265,7 @@ impl Parser {
         }
     }
 
-    // factor = Ident | Number | String | '(' expr ')'
+    // factor = Ident | Number | String | '(' expr ')' | False | True
     fn factor(&mut self) -> Box<Expr> {
         let node = match self.tok.kind {
             TokenKind::Ident => {
@@ -287,7 +287,13 @@ impl Parser {
                 self.eat(TokenKind::Lpar);
                 
                 self.expr()
-            }
+            },
+            TokenKind::False => {
+                Box::new(Expr::Boolean(false))
+            },
+            TokenKind::True => {
+                Box::new(Expr::Boolean(true))
+            },
 
             _ => panic!("Unexpected in factor: {:?}", self.tok.kind)
         };

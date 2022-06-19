@@ -7,6 +7,10 @@ pub enum Instruction {
     LoadLocal,
     StoreLocal,
 
+    LoadTrue,
+    LoadFalse,
+    LoadNil,
+
     UnaryNot,
     UnaryMinus,
     UnaryLen,
@@ -24,28 +28,18 @@ pub enum Instruction {
     BinLe,
     BinEq,
     BinAnd,
-    BinOr
-}
+    BinOr,
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
-pub struct Arg(i32);
+    JumpAbsoluteIfFalse,
+    JumpAbsolute,
 
-impl Arg {
-    pub fn new(p: i32) -> Arg {
-        Arg(p)
-    }
-
-    pub fn advance(&mut self) -> i32 {
-        self.0 += 1;
-
-        self.0
-    }
+    End
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Bytecode {
     pub inst: Instruction,
-    pub arg: Arg
+    pub arg: usize
 }
 
 #[derive(Debug)]
