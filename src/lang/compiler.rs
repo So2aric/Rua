@@ -116,12 +116,12 @@ impl Compiler {
                 self.codes[if_pos].arg = self.codes.len() - 1;
                 s_pos.push(self.codes.len() - 1);
             });
+
+        self.visit_stmt_list(else_body);
         
         for i in s_pos {
             self.codes[i].arg = self.codes.len() - 1;
         }
-
-
     }
 
     fn visit_assign(&mut self,

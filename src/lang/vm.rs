@@ -127,11 +127,13 @@ mod tests {
             a = 1 + 3
             b = 1 / 2
             a, b = b, a
-            
+
             if false then
                 c = 1
-            elseif true then
+            elseif false then
                 c = 2
+            else
+                c = 3
             end
         ").analyze();
         let ast = Parser::new(toks).parse();
