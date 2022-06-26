@@ -52,11 +52,12 @@ impl Parser {
         res
     }
 
-    // stmt = assign_stmt | if_stmt
+    // stmt = assign_stmt | if_stmt | while_stmt
     fn stmt(&mut self) -> Stmt {
         match self.tok.kind {
             TokenKind::If => self.if_stmt(),
             TokenKind::Ident => self.assign_stmt(),
+            TokenKind::While => self.while_stmt(),
 
             _ => panic!("Unknown statement. cur_tok: {:?}", self.tok.kind)
         }
@@ -74,7 +75,7 @@ impl Parser {
     // if_stmt = 'if' expr 'then' stmt_list { 'elseif' expr 'then' stmt_list } [ 'else' stmt_list ] 'end'
     fn if_stmt(&mut self) -> Stmt {
         self.eat(TokenKind::If);
-        let cond = self.expr();
+        let cond = *self.expr();
         self.eat(TokenKind::Then);
         let if_body = self.stmt_list();
 
@@ -97,6 +98,17 @@ impl Parser {
         self.eat(TokenKind::End);
 
         Stmt::If { cond, if_body, elseif_conds, elseif_bodies, else_body }
+    }
+
+    // while_stmt = 'while' expr 'do' stmt_list 'end'
+    fn while_stmt(&mut self) -> Stmt {
+        self.eat(TokenKind::While);
+        let cond = *self.expr();
+        self.eat(TokenKind::Do);
+        let body = self.stmt_list();
+        self.eat(TokenKind::End);
+
+        Stmt::While { cond, body }
     }
 
     // ident_list = ident { , ident }

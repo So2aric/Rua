@@ -79,6 +79,13 @@ impl VirtualMachine {
 
                     self.stack.push(Value::Number(left / right));
                 },
+                
+                BinLt => {
+                    let right = self.pop_num();
+                    let left = self.pop_num();
+
+                    self.stack.push(Value::Boolean(left < right));
+                }
 
                 JumpAbsoluteIfFalse => {
                     if !match self.stack.pop().unwrap() {
@@ -87,13 +94,12 @@ impl VirtualMachine {
 
                         _ => true
                     } {
-                        // we'll add one to p after the match, so we substract one here
                         self.p = code.arg;
                     }
                 },
                 JumpAbsolute => {
                     self.p = code.arg;
-                }
+                },
 
                 End => break,
 
@@ -128,16 +134,28 @@ mod tests {
             b = 1 / 2
             a, b = b, a
 
-            if false then
+            if true then
                 c = 1
             elseif false then
                 c = 2
             else
                 c = 3
             end
+
+            i = 1
+            d = 0
+            while i < 10 do
+                d = d + i
+                i = i + 1
+            end
         ").analyze();
         let ast = Parser::new(toks).parse();
         let co = Compiler::new().compile(&ast);
+        
+        for (i, v) in co.bc.iter().enumerate() {
+            println!("{}: {:?}", i, v);
+        }
+
         let mut vm = VirtualMachine::new(co);
 
         vm.run();

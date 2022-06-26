@@ -84,8 +84,25 @@ impl Compiler {
                 else_body
             } => {
                 self.visit_if(cond, if_body, elseif_conds, elseif_bodies, else_body);
+            },
+            Stmt::While { cond, body } => {
+                self.visit_while(cond, body);
             }
         }
+    }
+
+    fn visit_while(&mut self,
+        cond: &Expr,
+        body: &StmtList
+    ) {
+        let cond_pos = self.codes.len() - 1;
+        self.visit_expr(cond);
+        self.codes.push(Bytecode { inst: Instruction::JumpAbsoluteIfFalse, arg: 0 });
+        let jmp_pos = self.codes.len() - 1;
+
+        self.visit_stmt_list(body);
+        self.codes.push(Bytecode { inst: Instruction::JumpAbsolute, arg: cond_pos });
+        self.codes[jmp_pos].arg = self.codes.len() - 1;
     }
 
     fn visit_if(&mut self,
@@ -193,6 +210,11 @@ impl Compiler {
                     }),
                     TokenKind::Pow => self.codes.push(Bytecode {
                         inst: Instruction::BinPow,
+                        arg: 0
+                    }),
+
+                    TokenKind::Lt => self.codes.push(Bytecode {
+                        inst: Instruction::BinLt,
                         arg: 0
                     }),
 

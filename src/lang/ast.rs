@@ -56,10 +56,14 @@ pub enum Stmt {
         expr_list: ExprList
     },
     If {
-        cond: Box<Expr>, // condition
+        cond: Expr, // condition
         if_body: StmtList,
         elseif_conds: Vec<Box<Expr>>,
         elseif_bodies: Vec<StmtList>,
         else_body: StmtList
+    },
+    While {
+        cond: Expr,
+        body: StmtList
     }
 }
