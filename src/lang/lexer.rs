@@ -145,6 +145,14 @@ impl Lexer {
                         ));
                     }
                 },
+                '%' => res.push(self.make_token(
+                    TokenKind::Mod,
+                    None
+                )),
+                '#' => res.push(self.make_token(
+                    TokenKind::Len,
+                    None
+                )),
                 '.' => {
                     // . or .. ?
                     if let Some(_ch @ '.') = self.peek() {

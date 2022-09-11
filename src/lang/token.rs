@@ -10,7 +10,9 @@ pub enum TokenKind {
     Pow,        // ^
     RealDiv,    // /
     IntDiv,     // //
+    Mod,        // %
     Concat,     // ..
+    Len,        // #
 
     Lpar,       // (
     Rpar,       // )
@@ -59,7 +61,7 @@ pub struct Location {
 
 impl Location {
     pub fn new() -> Location {
-        Location { line: 1, column: 1 }
+        Location { line: 0, column: 1 }
     }
 
     pub fn advance(&mut self) {
