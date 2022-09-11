@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{ast::{IdentList, ExprList, Expr, StmtList, Ident, Stmt}, bytecode::{Bytecode, Instruction, Bytecodes}, token::TokenKind};
+use super::{ast::{IdentList, ExprList, Expr, StmtList, Ident, Stmt, FuncCall}, bytecode::{Bytecode, Instruction, Bytecodes}, token::TokenKind};
 
 pub struct Compiler {
     codes: Vec<Bytecode>,
@@ -88,7 +88,24 @@ impl Compiler {
             Stmt::While { cond, body } => {
                 self.visit_while(cond, body);
             }
+            Stmt::FuncDecl { ident, args, body } => {
+                self.visit_func_decl(ident, args, body);
+            }
         }
+    }
+
+    fn visit_func_decl(&mut self, ident: &Ident, args: &IdentList, body: &StmtList) {
+        self.codes.push(Bytecode { inst: Instruction::FuncDecl, arg: self.codes.len() + 1 });
+        self.codes.push(Bytecode { inst: Instruction::JumpAbsolute, arg: 0 });
+        let pos = self.codes.len() - 1;
+
+        // parsing arguments
+        args.into_iter().rev().for_each(|i| {
+            self.visit_ident(i, Instruction::StoreGlob);
+        });
+        
+        self.visit_stmt_list(body);
+        self.codes[pos].arg = self.codes.len() - 1;
     }
 
     fn visit_while(&mut self,
@@ -151,8 +168,6 @@ impl Compiler {
         for ident in ident_list.iter().rev() {
             self.visit_ident(ident, Instruction::StoreGlob);
         }
-
-
     }
 
     fn visit_ident(&mut self, ident: &Ident, inst: Instruction) {
@@ -261,7 +276,20 @@ impl Compiler {
                     },
                     arg: 0
                 });
-            }
+            },
+
+            Expr::FuncCall(FuncCall {
+                ident,
+                args
+            }) => {
+                self.visit_ident(ident, Instruction::LoadGlob);
+
+                args.into_iter().for_each(|e| {
+                    self.visit_expr(e);
+                });
+
+                self.codes.push(Bytecode { inst: Instruction::FuncCall, arg: 0});
+            },
 
             _ => unimplemented!()
         }

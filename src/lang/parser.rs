@@ -1,15 +1,15 @@
-use std::vec::IntoIter;
+use std::{vec::IntoIter, iter::Peekable};
 
-use super::{token::{Token, TokenKind}, ast::{StmtList, Stmt, ExprList, IdentList, Ident, Expr}};
+use super::{token::{Token, TokenKind}, ast::{StmtList, Stmt, ExprList, IdentList, Ident, Expr, FuncCall}};
 
 pub struct Parser {
-    toks: IntoIter<Token>,
+    toks: Peekable<IntoIter<Token>>,
     tok: Token
 }
 
 impl Parser {
     pub fn new(toks: Vec<Token>) -> Parser {
-        let mut toks = toks.into_iter();
+        let mut toks = toks.into_iter().peekable();
         let tok = toks.next().unwrap();
 
         Parser { toks, tok }
@@ -38,6 +38,13 @@ impl Parser {
         }
     }
 
+    fn peek(&mut self) -> TokenKind {
+        match self.toks.peek() {
+            Some(tok) => tok.kind,
+            None => panic!("Unexpected ended!!!! from peek.")
+        }
+    }
+
     // stmt_list = { stmt }
     fn stmt_list(&mut self) -> StmtList {
         let mut res = vec![];
@@ -52,14 +59,39 @@ impl Parser {
         res
     }
 
-    // stmt = assign_stmt | if_stmt | while_stmt
+    // stmt = assign_stmt | if_stmt | while_stmt | func_decl_stmt
     fn stmt(&mut self) -> Stmt {
         match self.tok.kind {
             TokenKind::If => self.if_stmt(),
             TokenKind::Ident => self.assign_stmt(),
             TokenKind::While => self.while_stmt(),
+            TokenKind::Function => self.func_decl_stmt(),
 
             _ => panic!("Unknown statement. cur_tok: {:?}", self.tok.kind)
+        }
+    }
+
+    // func_decl_stmt = 'function' ident '(' ident_list ')' stmt_list 'end'
+    fn func_decl_stmt(&mut self) -> Stmt {
+        self.eat(TokenKind::Function);
+        let ident = self.ident();
+        self.eat(TokenKind::Lpar);
+
+        let mut ident_list = vec![];
+        if !self.matches(TokenKind::Rpar) {
+            ident_list = self.ident_list();
+        }
+        
+        self.eat(TokenKind::Rpar);
+
+        let stmt_list = self.stmt_list();
+
+        self.eat(TokenKind::End);
+
+        Stmt::FuncDecl {
+            ident,
+            args: ident_list,
+            body: stmt_list
         }
     }
 
@@ -278,12 +310,17 @@ impl Parser {
     }
 
     // factor = Ident | Number | String | '(' expr ')' | False | True
+    //        | function_call
     fn factor(&mut self) -> Box<Expr> {
         let node = match self.tok.kind {
             TokenKind::Ident => {
-                Box::new(Expr::Ident(Ident {
-                    name: self.tok.value.clone().unwrap().clone()
-                }))
+                if self.peek() == TokenKind::Lpar {
+                    self.function_call()
+                } else {
+                    Box::new(Expr::Ident(Ident {
+                        name: self.tok.value.clone().unwrap().clone()
+                    }))
+                }
             },
             TokenKind::Number => {
                 Box::new(Expr::Number(
@@ -314,6 +351,17 @@ impl Parser {
 
         node
     }
+
+    // function_call = ident '(' expr_list ')'
+    fn function_call(&mut self) -> Box<Expr> {
+        let ident = self.ident();
+        self.eat(TokenKind::Lpar);
+        let args = self.expr_list();
+
+        Box::new(Expr::FuncCall(FuncCall {
+            ident, args
+        }))
+    }
 }
 
 
@@ -326,19 +374,8 @@ mod tests {
     #[test]
     fn see() {
         let toks = Lexer::new(r#"
-            a = 1 + 3 ^ 4 ^ 2
-            b = 6 * (5 - 2)
-            c, d = "wow" .. "yeah", 1
-
-            if a + b > 3 then
-                c = 5
-            elseif b < 5 then
-                b = 1
-            elseif a - 1 == 0 then
-                a = a + 1
-                b = b - 2
-            else
-                d = "Oh no"
+            function f(a, b)
+                e = a + b
             end
         "#).analyze();
         let mut parser = Parser::new(toks);

@@ -11,17 +11,31 @@ pub enum Value {
     Nil
 }
 
+pub struct Frame {
+    parent: Box<Frame>,
+    body: Bytecodes,
+    env: HashMap<String, Value>
+}
+
 pub struct VirtualMachine {
     codes: Bytecodes,
     p: usize,
 
     stack: Vec<Value>,
-    memory: HashMap<String, Value>
+    memory: HashMap<String, Value>,
+
+    call_stack: Vec<Frame>
 }
 
 impl VirtualMachine {
     pub fn new(codes: Bytecodes) -> VirtualMachine {
-        VirtualMachine { codes, p: 0, stack: vec![], memory: HashMap::new() }
+        VirtualMachine {
+            codes,
+            p: 0,
+            stack: vec![],
+            memory: HashMap::new(),
+            call_stack: vec![]
+        }
     }
 
     pub fn run(&mut self) {
@@ -100,6 +114,10 @@ impl VirtualMachine {
                 JumpAbsolute => {
                     self.p = code.arg;
                 },
+
+                FuncDecl => {
+                    
+                }
 
                 End => break,
 

@@ -19,7 +19,6 @@ pub enum Expr {
     String(String),
     Boolean(bool),
 
-    FuncDecl(FuncDecl),
     FuncCall(FuncCall)
 }
 
@@ -29,14 +28,6 @@ pub type IdentList = Vec<Ident>;
 #[derive(Debug)]
 pub struct Ident {
     pub name: String
-}
-
-
-#[derive(Debug)]
-pub struct FuncDecl {
-    pub ident: Ident,
-    pub args: IdentList,
-    pub body: Box<StmtList>
 }
 
 
@@ -64,6 +55,11 @@ pub enum Stmt {
     },
     While {
         cond: Expr,
+        body: StmtList
+    },
+    FuncDecl {
+        ident: Ident,
+        args: IdentList,
         body: StmtList
     }
 }

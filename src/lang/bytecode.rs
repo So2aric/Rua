@@ -33,6 +33,10 @@ pub enum Instruction {
     JumpAbsoluteIfFalse,
     JumpAbsolute,
 
+    FuncDecl,
+    Return,
+    FuncCall,
+
     End
 }
 
