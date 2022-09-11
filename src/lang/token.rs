@@ -49,7 +49,7 @@ pub enum TokenKind {
     Or,
 
     Eof
-}
+}               //token class
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Location {
