@@ -1,19 +1,19 @@
-use std::io;
-use rua::lang::{lexer,parser,ast};
+use std::{fs,env};
+use rua::lang::{lexer,parser,compiler,vm};
 
 fn main() {
-    while true {
 
-        let mut input = String::new();
+        let args:Vec<String> = env::args().collect();
+        let path = &args[1];
+        let content = fs::read_to_string(path).expect("error");
 
-        io::stdin()
-            .read_line(&mut input)
-            .expect("Fail to read text");
-
-        let mut lexer = lexer::Lexer::new(&input);
-
+        let mut lexer = lexer::Lexer::new(&content);
+        let mut compiler = compiler::Compiler::new();
         let mut parse = parser::Parser::new(lexer.analyze());
-        
-    }
-    
+
+        let res = compiler.compile(&parse.parse());
+
+        let mut vm = vm::VirtualMachine::new(res);
+        vm.run();
+
 }
