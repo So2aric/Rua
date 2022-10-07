@@ -43,7 +43,7 @@ pub enum TokenKind {
     While,
     End,
     Function,
-
+    
     True,
     False,
     And,
@@ -51,7 +51,7 @@ pub enum TokenKind {
     Or,
 
     Eof
-}
+}               //token class
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Location {
